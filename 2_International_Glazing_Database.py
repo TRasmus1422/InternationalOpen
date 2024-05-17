@@ -95,23 +95,20 @@ def InternationLibary(api_token, headers):
         Rf = [d["Rf"] for d in glassInfo["spectral_data"]['spectral_data']]
         W = [d["wavelength"] for d in glassInfo["spectral_data"]['spectral_data']]
 
-        # Create a Plotly figure
-        fig = go.Figure()
-        WW = [w * 1000 for w in W[0:92]]
-
-        # Add the three curves to the figure
-        fig.add_trace(go.Scatter(x=WW, y=T[0:92], mode='lines', name='T'))
-        fig.add_trace(go.Scatter(x=WW, y=Rf[0:92], mode='lines', name='Rf'))
-        fig.add_trace(go.Scatter(x=WW, y=Rb[0:92], mode='lines', name='Rb'))
-
-        # Set plot layout
-        fig.update_layout(title=glassInfo["name"],
-                          xaxis_title='Wavelength',
-                          yaxis_title='Value')
-
-
+        # Define a session state variable to store the toggle state
+        if "show_full_data" not in st.session_state:
+            st.session_state.show_full_data = False
+        
+        # Create a button to toggle between full and truncated datasets
+        if st.button("Show Full Data Set"):
+            st.session_state.show_full_data = not st.session_state.show_full_data
+        
+        # Create the Plotly figure based on the toggle state
+        fig = create_figure(W, T, Rf, Rb, st.session_state.show_full_data,glassInfo)
+        
         # Display the Plotly figure using Streamlit
-        st.plotly_chart(fig)
+        st.plotly_chart(fig, use_container_width=True)
+    
         col1, col2, col3, col4 = st.columns(4)
         
         md = glassInfo["measured_data"]
@@ -186,6 +183,26 @@ def InternationLibary(api_token, headers):
             st.write(irs["rfciez"])
 
         return glassInfo
+    
+def create_figure(W, T, Rf, Rb, full_data,glassInfo):
+    fig = go.Figure()
+
+    # Determine the range of data based on the toggle state
+    data_range = slice(None) if full_data else slice(0, 92)
+    WW = [w * 1000 for w in W[data_range]]
+
+    # Add the three curves to the figure
+    fig.add_trace(go.Scatter(x=WW, y=T[data_range], mode='lines', name='T'))
+    fig.add_trace(go.Scatter(x=WW, y=Rf[data_range], mode='lines', name='Rf'))
+    fig.add_trace(go.Scatter(x=WW, y=Rb[data_range], mode='lines', name='Rb'))
+
+    # Set plot layout
+    fig.update_layout(title=glassInfo["name"],
+                      xaxis_title='Wavelength',
+                      yaxis_title='Value')
+
+    return fig
+
 
 if __name__ == "__main__":
     api_token = 'fa46434f489400ef7e671211f00250838305f04e'
